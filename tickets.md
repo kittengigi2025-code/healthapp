@@ -83,14 +83,14 @@ Work the **frontier**: any ticket whose blockers are all done. For a purely line
 
 **Blocked by:** 5. Daily dashboard.
 
-- [ ] Exercise input form (exercise type dropdown + duration input)
-- [ ] Backend `POST /api/log-exercise` endpoint — accepts exercise type + duration, estimates calories burned using user weight and MET values
-- [ ] ExerciseLog saved with type, duration_minutes, estimated_calories_burned, timestamp
-- [ ] Dashboard shows today's total exercise expenditure
-- [ ] Calorie gap updates: gap = target - intake + exercise_burned
-- [ ] Today's exercise list displayed on dashboard
-- [ ] Common exercise types available (walking, running, cycling, swimming, gym, yoga, etc.)
-- [ ] Calorie burn estimation unit tested
+- [x] Exercise input form (exercise type dropdown + duration input)
+- [x] Backend `POST /api/log-exercise` endpoint — accepts exercise type + duration, estimates calories burned using user weight and MET values
+- [x] ExerciseLog saved with type, duration_minutes, estimated_calories_burned, timestamp
+- [x] Dashboard shows today's total exercise expenditure
+- [x] Calorie gap updates: gap = target - intake + exercise_burned
+- [x] Today's exercise list displayed on dashboard
+- [x] Common exercise types available (walking, running, cycling, swimming, gym, yoga, etc.)
+- [x] Calorie burn estimation unit tested
 
 ## 7. AI daily summary
 
@@ -112,13 +112,13 @@ Work the **frontier**: any ticket whose blockers are all done. For a purely line
 
 **Blocked by:** 5. Daily dashboard.
 
-- [ ] Plan screen displays current week's plan
-- [ ] Backend `POST /api/generate-weekly-plan` endpoint — takes UserProfile + recent DailySummaries + MealLogs, generates 7-day plan via LLM
-- [ ] WeeklyPlan includes daily_targets[], meal_suggestions[], exercise_suggestions[], generated_at
-- [ ] Meal suggestions reference Southeast Asian food options
-- [ ] Plan auto-generates on first visit (if none exists)
-- [ ] "Regenerate Plan" button available
-- [ ] Plan updates weekly based on actual performance data
+- [x] Plan screen displays current week's plan
+- [x] Backend `POST /api/generate-weekly-plan` endpoint — takes UserProfile + recent DailySummaries + MealLogs, generates 7-day plan via LLM
+- [x] WeeklyPlan includes daily_targets[], meal_suggestions[], exercise_suggestions[], generated_at
+- [x] Meal suggestions reference Southeast Asian food options
+- [x] Plan auto-generates on first visit (if none exists)
+- [x] "Regenerate Plan" button available
+- [x] Plan updates weekly based on actual performance data
 - [ ] LLM response mocked in tests
 
 ## 9. Profile page

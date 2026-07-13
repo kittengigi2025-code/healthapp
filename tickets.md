@@ -98,12 +98,12 @@ Work the **frontier**: any ticket whose blockers are all done. For a purely line
 
 **Blocked by:** 6. Exercise logging.
 
-- [ ] "Generate Summary" button on dashboard (or auto-trigger at end of day)
-- [ ] Backend `POST /api/generate-daily-summary` endpoint — aggregates today's MealLogs + ExerciseLogs + UserProfile, calls LLM to generate summary + tomorrow's suggestions
-- [ ] LLM prompt includes user profile context for personalized summary
-- [ ] DailySummary saved with total_intake, total_expenditure, calorie_gap, ai_summary, ai_suggestions
-- [ ] Summary and suggestions displayed on dashboard
-- [ ] Summary not generated if no meals logged (graceful handling)
+- [x] "Generate Summary" button on dashboard (or auto-trigger at end of day)
+- [x] Backend `POST /api/generate-daily-summary` endpoint — aggregates today's MealLogs + ExerciseLogs + UserProfile, calls LLM to generate summary + tomorrow's suggestions
+- [x] LLM prompt includes user profile context for personalized summary
+- [x] DailySummary saved with total_intake, total_expenditure, calorie_gap, ai_summary, ai_suggestions
+- [x] Summary and suggestions displayed on dashboard
+- [x] Summary not generated if no meals logged (graceful handling)
 - [ ] LLM response mocked in tests
 
 ## 8. Weekly fat-loss plan
@@ -132,7 +132,7 @@ Work the **frontier**: any ticket whose blockers are all done. For a purely line
 - [x] Changes saved to User table
 - [x] Weight trend line chart showing historical weight entries
 - [x] User can log new weight entry from profile page
-- [ ] AI-learned preferences displayed as tags (from UserProfile, read-only for now)
+- [x] AI-learned preferences displayed as tags (from UserProfile, read-only for now)
 - [x] Logout button accessible from profile page
 
 ## 10. AI memory system (profile summary)
@@ -141,11 +141,11 @@ Work the **frontier**: any ticket whose blockers are all done. For a purely line
 
 **Blocked by:** 4. Camera & AI meal analysis, 6. Exercise logging.
 
-- [ ] InteractionHistory records created on each meal analysis and exercise log
-- [ ] Backend `POST /api/update-profile-summary` endpoint — reads today's InteractionHistory, calls LLM to extract profile insights, merges into UserProfile
-- [ ] LLM prompt designed to extract: dietary preferences, allergens, eating patterns, common foods, activity level
-- [ ] UserProfile updated with extracted insights (JSON structure, under 500 tokens)
-- [ ] All AI endpoints (analyze-meal, daily-summary, weekly-plan) inject current UserProfile into prompts
+- [x] InteractionHistory records created on each meal analysis and exercise log
+- [x] Backend `POST /api/update-profile-summary` endpoint — reads today's InteractionHistory, calls LLM to extract profile insights, merges into UserProfile
+- [x] LLM prompt designed to extract: dietary preferences, allergens, eating patterns, common foods, activity level
+- [x] UserProfile updated with extracted insights (JSON structure, under 500 tokens)
+- [x] All AI endpoints (analyze-meal, daily-summary, weekly-plan) inject current UserProfile into prompts
 - [ ] Scheduled trigger for daily summary update (cron job or Supabase scheduled function)
 - [ ] UserProfile enrichment verified in tests (mock LLM, check profile update)
-- [ ] Token budget enforced: UserProfile ≤ 500 tokens per AI call
+- [x] Token budget enforced: UserProfile ≤ 500 tokens per AI call

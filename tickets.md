@@ -25,11 +25,11 @@ Work the **frontier**: any ticket whose blockers are all done. For a purely line
 
 **Blocked by:** 1. Project scaffolding & shared types.
 
-- [ ] Tab navigator configured with 4 tabs: Home, Camera, Plan, Profile
-- [ ] Onboarding stack navigator configured (separate from tabs)
-- [ ] Placeholder screens created for all 5 routes
-- [ ] Navigation between all tabs works
-- [ ] App launches and displays the onboarding flow by default (unauthenticated state)
+- [x] Tab navigator configured with 4 tabs: Home, Camera, Plan, Profile
+- [x] Onboarding stack navigator configured (separate from tabs)
+- [x] Placeholder screens created for all 5 routes
+- [x] Navigation between all tabs works
+- [x] App launches and displays the onboarding flow by default (unauthenticated state)
 
 ## 3. Auth & Onboarding
 

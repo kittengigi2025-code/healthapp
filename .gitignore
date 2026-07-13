@@ -1,0 +1,20 @@
+node_modules/
+dist/
+.env
+*.local
+
+# Expo
+mobile/.expo/
+mobile/dist/
+
+# Backend
+backend/dist/
+backend/.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

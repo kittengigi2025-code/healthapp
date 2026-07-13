@@ -7,6 +7,8 @@ import dashboardRoutes from './routes/dashboard';
 import profileRoutes from './routes/profile';
 import exerciseRoutes from './routes/exercise';
 import planRoutes from './routes/plan';
+import summaryRoutes from './routes/summary';
+import profileSummaryRoutes from './routes/profileSummary';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -36,10 +38,8 @@ app.use('/api', dashboardRoutes); // daily-stats, today-meals
 app.use('/api', profileRoutes);   // user-profile, weight-history
 app.use('/api', exerciseRoutes);  // log-exercise, today-exercises
 app.use('/api', planRoutes);      // weekly-plan, generate-weekly-plan
-// POST /api/generate-daily-summary — Ticket #7
-// POST /api/generate-weekly-plan   — Ticket #8
-// POST /api/log-exercise       — Ticket #6
-// POST /api/update-profile-summary — Ticket #10
+app.use('/api', summaryRoutes);   // daily-summary, generate-daily-summary
+app.use('/api', profileSummaryRoutes); // update-profile-summary
 
 app.get('/', (_req, res) => {
   res.json({

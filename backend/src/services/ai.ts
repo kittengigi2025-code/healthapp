@@ -47,16 +47,22 @@ IMPORTANT: Always respond with valid JSON matching this exact schema:
 
 export async function analyzeFoodImage(
   imageBase64: string,
-  imageType: 'jpeg' | 'png' | 'webp'
+  imageType: 'jpeg' | 'png' | 'webp',
+  profileContext?: string
 ): Promise<AnalyzeMealResponse> {
   const mimeType = `image/${imageType}`;
+
+  let systemPrompt = FOOD_ANALYSIS_SYSTEM_PROMPT;
+  if (profileContext) {
+    systemPrompt += `\n\nUser's dietary profile (use this to personalize feedback):\n${profileContext}`;
+  }
 
   const response = await openai.chat.completions.create({
     model: process.env.OPENAI_MODEL || 'gpt-4o',
     messages: [
       {
         role: 'system',
-        content: FOOD_ANALYSIS_SYSTEM_PROMPT,
+        content: systemPrompt,
       },
       {
         role: 'user',
@@ -221,5 +227,142 @@ Create a plan for this week (starting Monday).`;
     daily_targets: parsed.daily_targets || [],
     meal_suggestions: parsed.meal_suggestions || [],
     exercise_suggestions: parsed.exercise_suggestions || [],
+  };
+}
+
+// --- Daily Summary Generation ---
+
+const DAILY_SUMMARY_PROMPT = `You are a supportive nutritionist reviewing a user's day.
+Given their daily food intake, exercise, calorie target vs actual, and personal profile,
+write a brief encouraging summary (3-5 sentences) and 3 actionable suggestions for tomorrow.
+
+Be specific — reference foods they ate, patterns you notice, and their goal.
+Use a warm, motivating tone.
+
+IMPORTANT: Always respond with valid JSON:
+{
+  "ai_summary": "Your day summary text here (3-5 sentences)...",
+  "ai_suggestions": [
+    "Suggestion 1 for tomorrow",
+    "Suggestion 2 for tomorrow",
+    "Suggestion 3 for tomorrow"
+  ]
+}`;
+
+export async function generateDailySummary(
+  userProfile: { gender: string; age: number; weight_kg: number; goal: string },
+  dailyTarget: number,
+  totalIntake: number,
+  totalExpenditure: number,
+  mealsSummary: string,
+  exercisesSummary: string,
+  aiPreferences: string
+): Promise<{ ai_summary: string; ai_suggestions: string[] }> {
+  const userPrompt = `Review this user's day:
+
+Profile: ${userProfile.gender}, ${userProfile.age}yo, ${userProfile.weight_kg}kg, goal: ${userProfile.goal}
+Daily target: ${dailyTarget} kcal
+Total intake: ${totalIntake} kcal
+Total exercise burn: ${totalExpenditure} kcal
+Gap: ${dailyTarget - totalIntake + totalExpenditure} kcal
+
+Meals today: ${mealsSummary || 'None logged'}
+Exercises today: ${exercisesSummary || 'None logged'}
+Known preferences: ${aiPreferences || 'None yet'}
+
+Write a summary and 3 suggestions for tomorrow.`;
+
+  const response = await openai.chat.completions.create({
+    model: process.env.OPENAI_MODEL || 'gpt-4o',
+    messages: [
+      { role: 'system', content: DAILY_SUMMARY_PROMPT },
+      { role: 'user', content: userPrompt },
+    ],
+    max_tokens: 1000,
+    temperature: 0.6,
+    response_format: { type: 'json_object' },
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new Error('No response from AI model');
+
+  const parsed = JSON.parse(content);
+  return {
+    ai_summary: parsed.ai_summary || 'Day reviewed successfully.',
+    ai_suggestions: Array.isArray(parsed.ai_suggestions) ? parsed.ai_suggestions : [],
+  };
+}
+
+// --- Profile Insights Extraction ---
+
+const PROFILE_EXTRACTION_PROMPT = `You are an AI that builds a long-term dietary profile from a user's food and exercise history.
+Extract structured insights from today's interactions.
+
+IMPORTANT: Always respond with valid JSON matching this schema:
+{
+  "dietary_preferences": ["new preference discovered"],
+  "allergens": ["any allergen mentioned"],
+  "common_foods": ["food they eat frequently"],
+  "eating_patterns": ["pattern noticed, e.g. skips breakfast, late snacker"],
+  "activity_level": "sedentary|light|moderate|active",
+  "summary_update": "A brief sentence to add to their profile summary"
+}
+
+Only include NEW insights not already in their existing profile.
+Keep summary_update under 50 words total. Be concise.`;
+
+export async function extractProfileInsights(
+  todayInteractions: string,
+  existingProfile: {
+    dietary_preferences: string[];
+    allergens: string[];
+    common_foods: string[];
+    eating_patterns: string[];
+    activity_level: string;
+    summary_text: string;
+  }
+): Promise<{
+  dietary_preferences: string[];
+  allergens: string[];
+  common_foods: string[];
+  eating_patterns: string[];
+  activity_level: string;
+  summary_update: string;
+}> {
+  const userPrompt = `Today's interactions:
+${todayInteractions || 'No interactions today'}
+
+Current profile:
+- Preferences: ${existingProfile.dietary_preferences.join(', ') || 'none'}
+- Allergens: ${existingProfile.allergens.join(', ') || 'none'}
+- Common foods: ${existingProfile.common_foods.join(', ') || 'none'}
+- Patterns: ${existingProfile.eating_patterns.join(', ') || 'none'}
+- Activity: ${existingProfile.activity_level}
+- Summary: ${existingProfile.summary_text || 'empty'}
+
+Extract any NEW insights from today that aren't already in the profile.`;
+
+  const response = await openai.chat.completions.create({
+    model: process.env.OPENAI_MODEL || 'gpt-4o',
+    messages: [
+      { role: 'system', content: PROFILE_EXTRACTION_PROMPT },
+      { role: 'user', content: userPrompt },
+    ],
+    max_tokens: 800,
+    temperature: 0.3,
+    response_format: { type: 'json_object' },
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new Error('No response from AI model');
+
+  const parsed = JSON.parse(content);
+  return {
+    dietary_preferences: Array.isArray(parsed.dietary_preferences) ? parsed.dietary_preferences : [],
+    allergens: Array.isArray(parsed.allergens) ? parsed.allergens : [],
+    common_foods: Array.isArray(parsed.common_foods) ? parsed.common_foods : [],
+    eating_patterns: Array.isArray(parsed.eating_patterns) ? parsed.eating_patterns : [],
+    activity_level: parsed.activity_level || existingProfile.activity_level,
+    summary_update: parsed.summary_update || '',
   };
 }

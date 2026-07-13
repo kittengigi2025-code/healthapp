@@ -1,20 +1,12 @@
 import { Router } from 'express';
 import { supabase } from '../lib/supabase';
-import { generateWeeklyPlan } from '../services/ai';
+import { generateDailySummary } from '../services/ai';
 import { getDailyCalorieTarget } from '../utils/calories';
 
 const router = Router();
 
-function getWeekStart(date: Date): string {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust to Monday
-  d.setDate(diff);
-  return d.toISOString().split('T')[0];
-}
-
-// --- GET /api/weekly-plan ---
-router.get('/weekly-plan', async (req, res) => {
+// --- GET /api/daily-summary ---
+router.get('/daily-summary', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -27,37 +19,34 @@ router.get('/weekly-plan', async (req, res) => {
       return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Invalid token' } });
     }
 
-    const weekStart = (req.query.week as string) || getWeekStart(new Date());
+    const date = (req.query.date as string) || new Date().toISOString().split('T')[0];
 
-    const { data: plan } = await supabase
-      .from('weekly_plans')
+    const { data: summary } = await supabase
+      .from('daily_summaries')
       .select('*')
       .eq('user_id', user.id)
-      .eq('week_start_date', weekStart)
-      .order('generated_at', { ascending: false })
-      .limit(1)
+      .eq('date', date)
       .single();
 
-    if (!plan) {
+    if (!summary) {
       return res.json({ success: true, data: null });
     }
 
-    return res.json({ success: true, data: plan });
+    return res.json({ success: true, data: summary });
   } catch (error: any) {
-    // single() throws if no rows found - that's ok, return null
     if (error.code === 'PGRST116') {
       return res.json({ success: true, data: null });
     }
-    console.error('[get-weekly-plan] Error:', error.message);
+    console.error('[get-daily-summary] Error:', error.message);
     return res.status(500).json({
       success: false,
-      error: { code: 'PLAN_FAILED', message: error.message },
+      error: { code: 'SUMMARY_FAILED', message: error.message },
     });
   }
 });
 
-// --- POST /api/generate-weekly-plan ---
-router.post('/generate-weekly-plan', async (req, res) => {
+// --- POST /api/generate-daily-summary ---
+router.post('/generate-daily-summary', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -70,7 +59,9 @@ router.post('/generate-weekly-plan', async (req, res) => {
       return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Invalid token' } });
     }
 
-    const weekStart = getWeekStart(new Date());
+    const date = (req.body.date as string) || new Date().toISOString().split('T')[0];
+    const startOfDay = `${date}T00:00:00.000Z`;
+    const endOfDay = `${date}T23:59:59.999Z`;
 
     // Get user profile
     const { data: userData } = await supabase
@@ -94,66 +85,79 @@ router.post('/generate-weekly-plan', async (req, res) => {
 
     const activityLevel = (profileData?.activity_level as any) || 'sedentary';
     const dailyTarget = getDailyCalorieTarget(
-      userData.gender,
-      userData.age,
-      userData.height_cm,
-      userData.weight_kg,
-      userData.goal,
-      activityLevel
+      userData.gender, userData.age, userData.height_cm, userData.weight_kg,
+      userData.goal, activityLevel
     );
 
-    // Get recent meals (last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const { data: recentMeals } = await supabase
+    // Get today's meals
+    const { data: meals } = await supabase
       .from('meal_logs')
       .select('identified_foods, nutrition')
       .eq('user_id', user.id)
-      .gte('created_at', sevenDaysAgo.toISOString())
-      .limit(20);
+      .gte('created_at', startOfDay)
+      .lte('created_at', endOfDay);
 
-    const mealsSummary = (recentMeals || [])
+    if (!meals || meals.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'NO_MEALS', message: 'Log at least one meal before generating a summary' },
+      });
+    }
+
+    const totalIntake = meals.reduce((sum: number, m: any) => {
+      return sum + (m.nutrition?.total_calories || 0);
+    }, 0);
+
+    const mealsSummary = meals
       .map((m: any) => m.identified_foods?.map((f: any) => f.name).join(', '))
       .filter(Boolean)
       .join('; ');
 
-    // Get recent exercises
-    const { data: recentExercises } = await supabase
+    // Get today's exercises
+    const { data: exercises } = await supabase
       .from('exercise_logs')
       .select('exercise_type, duration_minutes, estimated_calories_burned')
       .eq('user_id', user.id)
-      .gte('created_at', sevenDaysAgo.toISOString())
-      .limit(20);
+      .gte('created_at', startOfDay)
+      .lte('created_at', endOfDay);
 
-    const exercisesSummary = (recentExercises || [])
+    const totalExpenditure = (exercises || []).reduce((sum: number, e: any) => {
+      return sum + (e.estimated_calories_burned || 0);
+    }, 0);
+
+    const exercisesSummary = (exercises || [])
       .map((e: any) => `${e.exercise_type} ${e.duration_minutes}min (${e.estimated_calories_burned}kcal)`)
       .join('; ');
 
-    // AI-learned preferences
     const aiPreferences = profileData?.summary_text || '';
 
-    // Generate plan via AI
-    const planData = await generateWeeklyPlan(
+    // Generate summary via AI
+    const summaryData = await generateDailySummary(
       userData,
       dailyTarget,
+      totalIntake,
+      totalExpenditure,
       mealsSummary,
       exercisesSummary,
       aiPreferences
     );
 
-    // Save to database (upsert for this week)
-    const { data: savedPlan, error } = await supabase
-      .from('weekly_plans')
+    // Save/upsert to database
+    const calorieGap = dailyTarget - totalIntake + totalExpenditure;
+
+    const { data: savedSummary, error } = await supabase
+      .from('daily_summaries')
       .upsert({
         user_id: user.id,
-        week_start_date: weekStart,
-        daily_targets: planData.daily_targets,
-        meal_suggestions: planData.meal_suggestions,
-        exercise_suggestions: planData.exercise_suggestions,
-        generated_at: new Date().toISOString(),
+        date,
+        total_intake_calories: totalIntake,
+        total_expenditure_calories: totalExpenditure,
+        calorie_gap: calorieGap,
+        daily_target_calories: dailyTarget,
+        ai_summary: summaryData.ai_summary,
+        ai_suggestions: summaryData.ai_suggestions,
       }, {
-        onConflict: 'user_id,week_start_date',
+        onConflict: 'user_id,date',
       })
       .select()
       .single();
@@ -163,19 +167,19 @@ router.post('/generate-weekly-plan', async (req, res) => {
     // Record interaction history
     await supabase.from('interaction_history').insert({
       user_id: user.id,
-      interaction_type: 'plan_generation',
-      related_id: savedPlan.id,
-      input_summary: `Generated weekly plan for ${weekStart}`,
-      ai_response_summary: `Plan with ${planData.meal_suggestions.length} meal suggestions and ${planData.exercise_suggestions.length} exercises`,
-      metadata: { week_start: weekStart, daily_target: dailyTarget },
+      interaction_type: 'summary_generation',
+      related_id: savedSummary.id,
+      input_summary: `Generated daily summary for ${date}`,
+      ai_response_summary: summaryData.ai_summary.slice(0, 200),
+      metadata: { date, total_intake: totalIntake, suggestions_count: summaryData.ai_suggestions.length },
     });
 
-    return res.json({ success: true, data: savedPlan });
+    return res.json({ success: true, data: savedSummary });
   } catch (error: any) {
-    console.error('[generate-weekly-plan] Error:', error.message);
+    console.error('[generate-daily-summary] Error:', error.message);
     return res.status(500).json({
       success: false,
-      error: { code: 'PLAN_FAILED', message: error.message },
+      error: { code: 'SUMMARY_FAILED', message: error.message },
     });
   }
 });

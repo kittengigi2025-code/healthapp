@@ -58,8 +58,25 @@ router.post('/analyze-meal', async (req: Request, res: Response<ApiResponse<Anal
       });
     }
 
+    // Fetch user's AI profile for personalized analysis (#10)
+    let profileContext = '';
+    const { data: profileData } = await supabase
+      .from('user_profiles')
+      .select('dietary_preferences, common_foods, eating_patterns, summary_text')
+      .eq('user_id', user.id)
+      .single();
+
+    if (profileData) {
+      const parts: string[] = [];
+      if (profileData.dietary_preferences?.length) parts.push(`Preferences: ${profileData.dietary_preferences.join(', ')}`);
+      if (profileData.common_foods?.length) parts.push(`Common foods: ${profileData.common_foods.join(', ')}`);
+      if (profileData.eating_patterns?.length) parts.push(`Patterns: ${profileData.eating_patterns.join(', ')}`);
+      if (profileData.summary_text) parts.push(`Profile: ${profileData.summary_text}`);
+      profileContext = parts.join('\n');
+    }
+
     // Call AI to analyze the food image
-    const analysisResult = await analyzeFoodImage(image_base64, image_type);
+    const analysisResult = await analyzeFoodImage(image_base64, image_type, profileContext || undefined);
 
     return res.json({
       success: true,

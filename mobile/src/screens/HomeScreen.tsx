@@ -8,9 +8,10 @@ import {
   Image,
   ActivityIndicator,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { getDailyStats, getTodayMeals, getTodayExercises } from '../lib/api';
+import { getDailyStats, getTodayMeals, getTodayExercises, getDailySummary, generateDailySummary } from '../lib/api';
 import type { DailyStatsResponse } from '@health-app/shared';
 
 export default function HomeScreen() {
@@ -18,19 +19,23 @@ export default function HomeScreen() {
   const [stats, setStats] = useState<DailyStatsResponse | null>(null);
   const [meals, setMeals] = useState<any[]>([]);
   const [exercises, setExercises] = useState<any[]>([]);
+  const [summary, setSummary] = useState<any>(null);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     try {
-      const [statsData, mealsData, exercisesData] = await Promise.all([
+      const [statsData, mealsData, exercisesData, summaryData] = await Promise.all([
         getDailyStats(),
         getTodayMeals(),
         getTodayExercises(),
+        getDailySummary().catch(() => null),
       ]);
       setStats(statsData);
       setMeals(mealsData);
       setExercises(exercisesData);
+      setSummary(summaryData);
     } catch (err: any) {
       console.error('Failed to load dashboard:', err.message);
     } finally {
@@ -48,6 +53,18 @@ export default function HomeScreen() {
   function onRefresh() {
     setRefreshing(true);
     loadData();
+  }
+
+  async function handleGenerateSummary() {
+    setGeneratingSummary(true);
+    try {
+      const data = await generateDailySummary();
+      setSummary(data);
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    } finally {
+      setGeneratingSummary(false);
+    }
   }
 
   if (loading) {
@@ -161,6 +178,43 @@ export default function HomeScreen() {
             </View>
           );
         })
+      )}
+
+      {/* AI Daily Summary */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>AI Summary</Text>
+        {!summary && meals.length > 0 && (
+          <TouchableOpacity onPress={handleGenerateSummary} disabled={generatingSummary}>
+            <Text style={styles.addBtn}>{generatingSummary ? '...' : '+ Generate'}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {summary ? (
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryText}>{summary.ai_summary}</Text>
+          {summary.ai_suggestions?.length > 0 && (
+            <View style={styles.suggestionsBox}>
+              <Text style={styles.suggestionsTitle}>Suggestions for tomorrow:</Text>
+              {summary.ai_suggestions.map((s: string, idx: number) => (
+                <Text key={idx} style={styles.suggestionItem}>• {s}</Text>
+              ))}
+            </View>
+          )}
+        </View>
+      ) : meals.length === 0 ? (
+        <View style={styles.emptyExercise}>
+          <Text style={styles.emptyText}>Log a meal first to get AI summary</Text>
+        </View>
+      ) : (
+        <View style={styles.emptyExercise}>
+          <Text style={styles.emptyText}>No summary yet today</Text>
+          <TouchableOpacity style={styles.summaryBtn} onPress={handleGenerateSummary} disabled={generatingSummary}>
+            <Text style={styles.summaryBtnText}>
+              {generatingSummary ? 'Generating...' : 'Generate Daily Summary'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       <View style={{ height: 32 }} />
@@ -279,4 +333,26 @@ const styles = StyleSheet.create({
   exerciseInfo: { flex: 1 },
   exerciseName: { fontSize: 14, fontWeight: '600', color: '#1A1A2E' },
   exerciseDetail: { fontSize: 12, color: '#6C757D', marginTop: 2 },
+  summaryCard: {
+    marginHorizontal: 16,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  summaryText: { fontSize: 14, lineHeight: 22, color: '#1A1A2E' },
+  suggestionsBox: { marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#F0F0F0' },
+  suggestionsTitle: { fontSize: 13, fontWeight: '700', color: '#4CAF50', marginBottom: 6 },
+  suggestionItem: { fontSize: 13, color: '#6C757D', lineHeight: 20, marginTop: 4 },
+  summaryBtn: {
+    marginTop: 12,
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  summaryBtnText: { color: '#FFFFFF', fontWeight: '600', fontSize: 14 },
 });

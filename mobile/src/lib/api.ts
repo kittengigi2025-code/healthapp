@@ -164,3 +164,39 @@ export async function generateWeeklyPlan() {
   if (!json.success) throw new Error(json.error?.message || 'Failed to generate plan');
   return json.data;
 }
+
+// --- Daily Summary ---
+
+export async function getDailySummary(date?: string) {
+  const headers = await getAuthHeaders();
+  const params = date ? `?date=${date}` : '';
+  const res = await fetch(`${API_URL}/api/daily-summary${params}`, { headers });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error?.message || 'Failed to load summary');
+  return json.data;
+}
+
+export async function generateDailySummary(date?: string) {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_URL}/api/generate-daily-summary`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ date }),
+  });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error?.message || 'Failed to generate summary');
+  return json.data;
+}
+
+// --- Profile Summary (AI Memory) ---
+
+export async function updateProfileSummary() {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_URL}/api/update-profile-summary`, {
+    method: 'POST',
+    headers,
+  });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error?.message || 'Failed to update profile');
+  return json.data;
+}

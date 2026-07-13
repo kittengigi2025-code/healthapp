@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { getUserProfile, updateUserProfile, getWeightHistory } from '../lib/api';
+import { getUserProfile, updateUserProfile, getWeightHistory, updateProfileSummary } from '../lib/api';
 import { supabase } from '../lib/supabase';
 
 type Gender = 'male' | 'female' | 'other';
@@ -40,6 +40,8 @@ export default function ProfileScreen() {
   const [targetWeight, setTargetWeight] = useState('');
   const [goal, setGoal] = useState<Goal>('maintain');
   const [weightHistory, setWeightHistory] = useState<any[]>([]);
+  const [aiProfile, setAiProfile] = useState<any>(null);
+  const [updatingAi, setUpdatingAi] = useState(false);
 
   const loadProfile = useCallback(async () => {
     try {
@@ -57,6 +59,7 @@ export default function ProfileScreen() {
         setGoal(u.goal || 'maintain');
       }
       setWeightHistory(weights || []);
+      setAiProfile(profileData?.profile || null);
     } catch (err: any) {
       console.error('Failed to load profile:', err.message);
     } finally {
@@ -84,6 +87,19 @@ export default function ProfileScreen() {
       Alert.alert('Error', err.message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleUpdateAiProfile() {
+    setUpdatingAi(true);
+    try {
+      const result = await updateProfileSummary();
+      Alert.alert('Updated', 'AI profile updated with latest insights.');
+      loadProfile(); // reload to get fresh data
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    } finally {
+      setUpdatingAi(false);
     }
   }
 
@@ -195,6 +211,45 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {/* AI-Learned Preferences */}
+        <View style={styles.section}>
+          <View style={styles.aiHeader}>
+            <Text style={styles.sectionTitle}>AI Profile</Text>
+            <TouchableOpacity
+              style={[styles.aiUpdateBtn, updatingAi && { opacity: 0.6 }]}
+              onPress={handleUpdateAiProfile}
+              disabled={updatingAi}
+            >
+              <Text style={styles.aiUpdateBtnText}>
+                {updatingAi ? 'Updating...' : '↻ Update'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {aiProfile?.summary_text ? (
+            <Text style={styles.aiSummary}>{aiProfile.summary_text}</Text>
+          ) : (
+            <Text style={styles.aiEmpty}>AI will learn your preferences over time</Text>
+          )}
+          {aiProfile?.dietary_preferences?.length > 0 && (
+            <View style={styles.tagRow}>
+              {aiProfile.dietary_preferences.map((tag: string, idx: number) => (
+                <View key={idx} style={styles.tag}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+          {aiProfile?.common_foods?.length > 0 && (
+            <View style={styles.tagRow}>
+              {aiProfile.common_foods.slice(0, 10).map((tag: string, idx: number) => (
+                <View key={idx} style={[styles.tag, styles.foodTag]}>
+                  <Text style={[styles.tagText, styles.foodTagText]}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
@@ -261,4 +316,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF3E0',
   },
   logoutText: { color: '#F44336', fontWeight: '600', fontSize: 15 },
+  aiHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  aiUpdateBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#E8F5E9' },
+  aiUpdateBtnText: { fontSize: 12, color: '#2E7D32', fontWeight: '600' },
+  aiSummary: { fontSize: 13, lineHeight: 20, color: '#1A1A2E', marginBottom: 8 },
+  aiEmpty: { fontSize: 13, color: '#6C757D', fontStyle: 'italic', marginBottom: 8 },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 6 },
+  tag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: '#E8F5E9' },
+  tagText: { fontSize: 11, color: '#2E7D32' },
+  foodTag: { backgroundColor: '#FFF3E0' },
+  foodTagText: { color: '#E65100' },
 });

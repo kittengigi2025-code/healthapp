@@ -68,14 +68,14 @@ Work the **frontier**: any ticket whose blockers are all done. For a purely line
 
 **Blocked by:** 4. Camera & AI meal analysis.
 
-- [ ] Home screen displays today's total calorie intake (summed from MealLogs)
-- [ ] Daily calorie target calculated from user profile (BMR adjusted for goal)
-- [ ] Visual progress indicator (gauge or progress bar) showing intake vs target
-- [ ] Calorie gap displayed (target - intake)
-- [ ] Scrollable list of today's meals with photo thumbnails, food names, and calories
-- [ ] Dashboard refreshes automatically when a new meal is logged
-- [ ] Empty state shown when no meals logged today
-- [ ] Daily calorie calculation logic unit tested
+- [x] Home screen displays today's total calorie intake (summed from MealLogs)
+- [x] Daily calorie target calculated from user profile (BMR adjusted for goal)
+- [x] Visual progress indicator (gauge or progress bar) showing intake vs target
+- [x] Calorie gap displayed (target - intake)
+- [x] Scrollable list of today's meals with photo thumbnails, food names, and calories
+- [x] Dashboard refreshes automatically when a new meal is logged
+- [x] Empty state shown when no meals logged today
+- [x] Daily calorie calculation logic unit tested
 
 ## 6. Exercise logging
 
@@ -127,13 +127,13 @@ Work the **frontier**: any ticket whose blockers are all done. For a purely line
 
 **Blocked by:** 3. Auth & Onboarding.
 
-- [ ] Profile screen displays all user fields (gender, age, height, weight, goal, target_weight)
-- [ ] All fields are editable
-- [ ] Changes saved to User table
-- [ ] Weight trend line chart showing historical weight entries
-- [ ] User can log new weight entry from profile page
+- [x] Profile screen displays all user fields (gender, age, height, weight, goal, target_weight)
+- [x] All fields are editable
+- [x] Changes saved to User table
+- [x] Weight trend line chart showing historical weight entries
+- [x] User can log new weight entry from profile page
 - [ ] AI-learned preferences displayed as tags (from UserProfile, read-only for now)
-- [ ] Logout button accessible from profile page
+- [x] Logout button accessible from profile page
 
 ## 10. AI memory system (profile summary)
 

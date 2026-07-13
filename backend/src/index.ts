@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { checkSupabaseConnection } from './lib/supabase';
+import mealRoutes from './routes/meal';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,8 +26,8 @@ app.get('/api/health', async (_req, res) => {
   });
 });
 
-// --- API Routes (placeholder) ---
-// POST /api/analyze-meal       — Ticket #4
+// --- API Routes ---
+app.use('/api', mealRoutes); // analyze-meal, save-meal, upload-image
 // POST /api/generate-daily-summary — Ticket #7
 // POST /api/generate-weekly-plan   — Ticket #8
 // POST /api/log-exercise       — Ticket #6

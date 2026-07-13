@@ -13,6 +13,8 @@ import PlanScreen from '../screens/PlanScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import AuthScreen from '../screens/AuthScreen';
 import OnboardingQuestionsScreen from '../screens/OnboardingQuestionsScreen';
+import MealResultScreen from '../screens/MealResultScreen';
+import type { AnalyzeMealResponse } from '@health-app/shared';
 
 // --- Navigator Types ---
 export type TabParamList = {
@@ -26,6 +28,7 @@ export type RootStackParamList = {
   Auth: undefined;
   Onboarding: undefined;
   Main: undefined;
+  MealResult: { photoUrl: string; analysis: AnalyzeMealResponse };
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -138,7 +141,14 @@ export default function AppNavigator() {
         ) : !onboardingCompleted ? (
           <RootStack.Screen name="Onboarding" component={OnboardingQuestionsScreen} />
         ) : (
-          <RootStack.Screen name="Main" component={MainTabs} />
+          <>
+            <RootStack.Screen name="Main" component={MainTabs} />
+            <RootStack.Screen
+              name="MealResult"
+              component={MealResultScreen}
+              options={{ headerShown: true, title: 'Meal Analysis', headerBackTitle: 'Back' }}
+            />
+          </>
         )}
       </RootStack.Navigator>
     </NavigationContainer>

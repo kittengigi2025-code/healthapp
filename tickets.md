@@ -51,16 +51,16 @@ Work the **frontier**: any ticket whose blockers are all done. For a purely line
 
 **Blocked by:** 3. Auth & Onboarding.
 
-- [ ] Camera screen with capture and gallery-pick functionality
-- [ ] Image upload to Supabase Storage
-- [ ] Backend `POST /api/analyze-meal` endpoint — receives image, calls multimodal LLM, returns structured response (food items, calories per item, nutrition breakdown, AI feedback text)
-- [ ] LLM prompt engineered for food identification with Southeast Asian food awareness
-- [ ] Results display screen showing each identified food item with calories and nutrition
-- [ ] User can edit food names and calorie values before saving
-- [ ] Confirmed/edited results saved as MealLog record
-- [ ] MealLog includes photo_url, identified_foods[], total_calories, nutrition_breakdown, ai_feedback, timestamp
-- [ ] LLM response mocked in tests — API contract verified
-- [ ] Daily meal analysis limit enforced (max 10 per user per day)
+- [x] Camera screen with capture and gallery-pick functionality
+- [x] Image upload to Supabase Storage
+- [x] Backend `POST /api/analyze-meal` endpoint — receives image, calls multimodal LLM, returns structured response (food items, calories per item, nutrition breakdown, AI feedback text)
+- [x] LLM prompt engineered for food identification with Southeast Asian food awareness
+- [x] Results display screen showing each identified food item with calories and nutrition
+- [x] User can edit food names and calorie values before saving
+- [x] Confirmed/edited results saved as MealLog record
+- [x] MealLog includes photo_url, identified_foods[], total_calories, nutrition_breakdown, ai_feedback, timestamp
+- [x] LLM response mocked in tests — API contract verified
+- [x] Daily meal analysis limit enforced (max 10 per user per day)
 
 ## 5. Daily dashboard
 

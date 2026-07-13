@@ -37,13 +37,13 @@ Work the **frontier**: any ticket whose blockers are all done. For a purely line
 
 **Blocked by:** 1. Project scaffolding & shared types, 2. App shell & navigation.
 
-- [ ] Email signup and login screens built
-- [ ] Supabase Auth integrated (signup, login, logout)
-- [ ] Onboarding flow collects 5 fields: gender, age, height, weight, goal
-- [ ] Onboarding data saved to User table in Supabase
-- [ ] New users are routed to onboarding; returning users go to Home
-- [ ] Auth state persists across app restarts
-- [ ] Logout works and returns user to login screen
+- [x] Email signup and login screens built
+- [x] Supabase Auth integrated (signup, login, logout)
+- [x] Onboarding flow collects 5 fields: gender, age, height, weight, goal
+- [x] Onboarding data saved to User table in Supabase
+- [x] New users are routed to onboarding; returning users go to Home
+- [x] Auth state persists across app restarts
+- [x] Logout works and returns user to login screen
 
 ## 4. Camera & AI meal analysis
 

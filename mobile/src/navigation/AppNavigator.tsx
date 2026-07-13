@@ -1,17 +1,20 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Text } from 'react-native';
+import type { Session } from '@supabase/supabase-js';
 
+import { supabase } from '../lib/supabase';
 import HomeScreen from '../screens/HomeScreen';
 import CameraScreen from '../screens/CameraScreen';
 import PlanScreen from '../screens/PlanScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import OnboardingScreen, { type OnboardingStackParamList } from '../screens/OnboardingScreen';
+import AuthScreen from '../screens/AuthScreen';
 import OnboardingQuestionsScreen from '../screens/OnboardingQuestionsScreen';
 
-// --- Tab Navigator Types ---
+// --- Navigator Types ---
 export type TabParamList = {
   Home: undefined;
   Camera: undefined;
@@ -19,14 +22,13 @@ export type TabParamList = {
   Profile: undefined;
 };
 
-// --- Root Navigator Types ---
 export type RootStackParamList = {
+  Auth: undefined;
   Onboarding: undefined;
   Main: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
-const OnboardingStack = createNativeStackNavigator<OnboardingStackParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
 // --- Tab icon component ---
@@ -73,28 +75,68 @@ function MainTabs() {
   );
 }
 
-// --- Onboarding Stack ---
-function OnboardingFlow() {
-  return (
-    <OnboardingStack.Navigator screenOptions={{ headerShown: false }}>
-      <OnboardingStack.Screen name="Welcome" component={OnboardingScreen} />
-      <OnboardingStack.Screen name="OnboardingQuestions" component={OnboardingQuestionsScreen} />
-    </OnboardingStack.Navigator>
-  );
-}
-
-// --- Root Navigator ---
-// TODO (Ticket #3): Use auth state to decide whether to show Onboarding or MainTabs
+// --- Root Navigator with Auth ---
 export default function AppNavigator() {
-  // For now, default to Onboarding (unauthenticated state)
-  // Ticket #3 will add auth-based conditional routing here
-  const isAuthenticated = false;
+  const [session, setSession] = useState<Session | null>(null);
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        checkOnboardingStatus(session.user.id);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) {
+        checkOnboardingStatus(session.user.id);
+      } else {
+        setOnboardingCompleted(null);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function checkOnboardingStatus(userId: string) {
+    try {
+      const { data } = await supabase
+        .from('users')
+        .select('onboarding_completed')
+        .eq('id', userId)
+        .single();
+
+      setOnboardingCompleted(data?.onboarding_completed ?? false);
+    } catch {
+      setOnboardingCompleted(false);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1A1A2E' }}>
+        <ActivityIndicator size="large" color="#4CAF50" />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
-        {!isAuthenticated ? (
-          <RootStack.Screen name="Onboarding" component={OnboardingFlow} />
+        {!session ? (
+          <RootStack.Screen name="Auth" component={AuthScreen} />
+        ) : !onboardingCompleted ? (
+          <RootStack.Screen name="Onboarding" component={OnboardingQuestionsScreen} />
         ) : (
           <RootStack.Screen name="Main" component={MainTabs} />
         )}

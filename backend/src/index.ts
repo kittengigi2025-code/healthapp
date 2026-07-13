@@ -3,6 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import { checkSupabaseConnection } from './lib/supabase';
 import mealRoutes from './routes/meal';
+import dashboardRoutes from './routes/dashboard';
+import profileRoutes from './routes/profile';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -27,12 +29,13 @@ app.get('/api/health', async (_req, res) => {
 });
 
 // --- API Routes ---
-app.use('/api', mealRoutes); // analyze-meal, save-meal, upload-image
+app.use('/api', mealRoutes);      // analyze-meal, save-meal, upload-image
+app.use('/api', dashboardRoutes); // daily-stats, today-meals
+app.use('/api', profileRoutes);   // user-profile, weight-history
 // POST /api/generate-daily-summary — Ticket #7
 // POST /api/generate-weekly-plan   — Ticket #8
 // POST /api/log-exercise       — Ticket #6
 // POST /api/update-profile-summary — Ticket #10
-// GET  /api/daily-stats        — Ticket #5
 
 app.get('/', (_req, res) => {
   res.json({

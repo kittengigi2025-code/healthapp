@@ -59,3 +59,60 @@ export async function saveMeal(data: {
   }
   return json.data;
 }
+
+// --- Dashboard ---
+
+export async function getDailyStats(date?: string) {
+  const headers = await getAuthHeaders();
+  const params = date ? `?date=${date}` : '';
+  const res = await fetch(`${API_URL}/api/daily-stats${params}`, { headers });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error?.message || 'Failed to load stats');
+  return json.data;
+}
+
+export async function getTodayMeals(date?: string) {
+  const headers = await getAuthHeaders();
+  const params = date ? `?date=${date}` : '';
+  const res = await fetch(`${API_URL}/api/today-meals${params}`, { headers });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error?.message || 'Failed to load meals');
+  return json.data as any[];
+}
+
+// --- Profile ---
+
+export async function getUserProfile() {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_URL}/api/user-profile`, { headers });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error?.message || 'Failed to load profile');
+  return json.data;
+}
+
+export async function updateUserProfile(data: {
+  gender?: string;
+  age?: number;
+  height_cm?: number;
+  weight_kg?: number;
+  goal?: string;
+  target_weight_kg?: number | null;
+}) {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_URL}/api/user-profile`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error?.message || 'Failed to update profile');
+  return json.data;
+}
+
+export async function getWeightHistory() {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_URL}/api/weight-history`, { headers });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error?.message || 'Failed to load weight history');
+  return json.data as any[];
+}

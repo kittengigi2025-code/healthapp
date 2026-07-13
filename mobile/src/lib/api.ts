@@ -143,3 +143,24 @@ export async function getTodayExercises(date?: string) {
   if (!json.success) throw new Error(json.error?.message || 'Failed to load exercises');
   return json.data as any[];
 }
+
+// --- Plan ---
+
+export async function getWeeklyPlan() {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_URL}/api/weekly-plan`, { headers });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error?.message || 'Failed to load plan');
+  return json.data;
+}
+
+export async function generateWeeklyPlan() {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_URL}/api/generate-weekly-plan`, {
+    method: 'POST',
+    headers,
+  });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error?.message || 'Failed to generate plan');
+  return json.data;
+}

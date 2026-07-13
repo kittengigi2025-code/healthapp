@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import type { AnalyzeMealResponse, IdentifiedFood, NutritionBreakdown } from '@health-app/shared';
+import type { AnalyzeMealResponse, IdentifiedFood, NutritionBreakdown, DailyTarget, MealSuggestion, ExerciseSuggestion } from '@health-app/shared';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -126,4 +126,100 @@ function guessMealType(): 'breakfast' | 'lunch' | 'dinner' | 'snack' {
   if (hour >= 11 && hour < 15) return 'lunch';
   if (hour >= 15 && hour < 18) return 'snack';
   return 'dinner';
+}
+
+// --- Weekly Plan Generation ---
+
+const WEEKLY_PLAN_PROMPT = `You are a professional nutritionist and fitness coach specializing in Southeast Asian diets.
+Generate a personalized 7-day meal and exercise plan.
+
+Context you will receive:
+- User profile: gender, age, height, weight, goal (lose_weight/maintain/gain_muscle)
+- Daily calorie target (calculated from BMR/TDEE)
+- Recent meal history (what they've been eating)
+- Recent exercise history
+- Any AI-learned preferences from their profile
+
+IMPORTANT: Always respond with valid JSON matching this exact schema:
+{
+  "daily_targets": [
+    { "day": "Monday", "calorie_target": 1800, "focus": "High protein day" },
+    ...  (7 days)
+  ],
+  "meal_suggestions": [
+    { "day": "Monday", "meal_type": "breakfast", "suggestion": "Roti canai with dhal (300 kcal)", "estimated_calories": 300 },
+    { "day": "Monday", "meal_type": "lunch", "suggestion": "Grilled chicken rice (450 kcal)", "estimated_calories": 450 },
+    { "day": "Monday", "meal_type": "dinner", "suggestion": "Steamed fish with vegetables (400 kcal)", "estimated_calories": 400 },
+    ...  (2-3 meals per day x 7 days)
+  ],
+  "exercise_suggestions": [
+    { "day": "Monday", "exercise_type": "walking", "description": "30 min evening walk", "duration_minutes": 30, "estimated_calories_burned": 150 },
+    ...  (1 exercise per day x 7 days, include 1-2 rest days)
+  ]
+}
+
+Guidelines:
+- Reference Southeast Asian food options (hawker food, local dishes)
+- Keep meals realistic and accessible
+- Vary exercise types (walking, running, gym, yoga, swimming)
+- Include 1-2 rest/light days per week
+- For lose_weight: create a slight deficit across the week
+- For gain_muscle: include protein-rich meals and strength training
+- Total daily meal calories should approximately match the daily target`;
+
+export async function generateWeeklyPlan(
+  userProfile: {
+    gender: string;
+    age: number;
+    height_cm: number;
+    weight_kg: number;
+    goal: string;
+  },
+  dailyTarget: number,
+  recentMeals: string,
+  recentExercises: string,
+  aiPreferences: string
+): Promise<{
+  daily_targets: DailyTarget[];
+  meal_suggestions: MealSuggestion[];
+  exercise_suggestions: ExerciseSuggestion[];
+}> {
+  const userPrompt = `Generate a 7-day plan for this user:
+
+Profile: ${userProfile.gender}, ${userProfile.age}yo, ${userProfile.height_cm}cm, ${userProfile.weight_kg}kg
+Goal: ${userProfile.goal}
+Daily calorie target: ${dailyTarget} kcal
+
+Recent meals: ${recentMeals || 'No data yet'}
+Recent exercises: ${recentExercises || 'No data yet'}
+Learned preferences: ${aiPreferences || 'None yet'}
+
+Create a plan for this week (starting Monday).`;
+
+  const response = await openai.chat.completions.create({
+    model: process.env.OPENAI_MODEL || 'gpt-4o',
+    messages: [
+      { role: 'system', content: WEEKLY_PLAN_PROMPT },
+      { role: 'user', content: userPrompt },
+    ],
+    max_tokens: 3000,
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new Error('No response from AI model');
+
+  const parsed = JSON.parse(content);
+
+  // Validate
+  if (!parsed.daily_targets || !Array.isArray(parsed.daily_targets)) {
+    throw new Error('Invalid plan: missing daily_targets');
+  }
+
+  return {
+    daily_targets: parsed.daily_targets || [],
+    meal_suggestions: parsed.meal_suggestions || [],
+    exercise_suggestions: parsed.exercise_suggestions || [],
+  };
 }

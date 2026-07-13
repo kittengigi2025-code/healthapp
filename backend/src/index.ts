@@ -5,6 +5,7 @@ import { checkSupabaseConnection } from './lib/supabase';
 import mealRoutes from './routes/meal';
 import dashboardRoutes from './routes/dashboard';
 import profileRoutes from './routes/profile';
+import exerciseRoutes from './routes/exercise';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,6 +33,7 @@ app.get('/api/health', async (_req, res) => {
 app.use('/api', mealRoutes);      // analyze-meal, save-meal, upload-image
 app.use('/api', dashboardRoutes); // daily-stats, today-meals
 app.use('/api', profileRoutes);   // user-profile, weight-history
+app.use('/api', exerciseRoutes);  // log-exercise, today-exercises
 // POST /api/generate-daily-summary — Ticket #7
 // POST /api/generate-weekly-plan   — Ticket #8
 // POST /api/log-exercise       — Ticket #6

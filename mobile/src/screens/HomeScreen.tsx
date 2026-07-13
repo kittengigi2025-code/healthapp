@@ -7,25 +7,30 @@ import {
   RefreshControl,
   Image,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import { getDailyStats, getTodayMeals } from '../lib/api';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { getDailyStats, getTodayMeals, getTodayExercises } from '../lib/api';
 import type { DailyStatsResponse } from '@health-app/shared';
 
 export default function HomeScreen() {
+  const navigation = useNavigation<any>();
   const [stats, setStats] = useState<DailyStatsResponse | null>(null);
   const [meals, setMeals] = useState<any[]>([]);
+  const [exercises, setExercises] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     try {
-      const [statsData, mealsData] = await Promise.all([
+      const [statsData, mealsData, exercisesData] = await Promise.all([
         getDailyStats(),
         getTodayMeals(),
+        getTodayExercises(),
       ]);
       setStats(statsData);
       setMeals(mealsData);
+      setExercises(exercisesData);
     } catch (err: any) {
       console.error('Failed to load dashboard:', err.message);
     } finally {
@@ -125,6 +130,39 @@ export default function HomeScreen() {
         ))
       )}
 
+      {/* Exercise Section */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Exercise</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Exercise')}>
+          <Text style={styles.addBtn}>+ Log</Text>
+        </TouchableOpacity>
+      </View>
+
+      {exercises.length === 0 ? (
+        <View style={styles.emptyExercise}>
+          <Text style={styles.emptyText}>No exercise logged today</Text>
+          <Text style={styles.emptyHint}>Tap + Log to record a workout!</Text>
+        </View>
+      ) : (
+        exercises.map((e: any) => {
+          const emojiMap: Record<string, string> = {
+            walking: '🚶', running: '🏃', cycling: '🚴', swimming: '🏊',
+            gym: '🏋️', yoga: '🧘', hiit: '⚡', sports: '⚽', other: '🏅',
+          };
+          return (
+            <View key={e.id} style={styles.exerciseCard}>
+              <Text style={styles.exerciseEmoji}>{emojiMap[e.exercise_type] || '🏅'}</Text>
+              <View style={styles.exerciseInfo}>
+                <Text style={styles.exerciseName}>{e.exercise_name || e.exercise_type}</Text>
+                <Text style={styles.exerciseDetail}>
+                  {e.duration_minutes} min · {e.estimated_calories_burned} kcal burned
+                </Text>
+              </View>
+            </View>
+          );
+        })
+      )}
+
       <View style={{ height: 32 }} />
     </ScrollView>
   );
@@ -213,4 +251,32 @@ const styles = StyleSheet.create({
   mealName: { fontSize: 14, fontWeight: '600', color: '#1A1A2E' },
   mealCalories: { fontSize: 13, fontWeight: '700', color: '#4CAF50', marginTop: 2 },
   mealTime: { fontSize: 11, color: '#6C757D', marginTop: 2 },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  addBtn: { fontSize: 14, fontWeight: '700', color: '#4CAF50' },
+  emptyExercise: { alignItems: 'center', paddingVertical: 24 },
+  exerciseCard: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  exerciseEmoji: { fontSize: 28 },
+  exerciseInfo: { flex: 1 },
+  exerciseName: { fontSize: 14, fontWeight: '600', color: '#1A1A2E' },
+  exerciseDetail: { fontSize: 12, color: '#6C757D', marginTop: 2 },
 });

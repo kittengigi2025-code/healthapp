@@ -116,3 +116,30 @@ export async function getWeightHistory() {
   if (!json.success) throw new Error(json.error?.message || 'Failed to load weight history');
   return json.data as any[];
 }
+
+// --- Exercise ---
+
+export async function logExercise(data: {
+  exercise_type: string;
+  exercise_name?: string;
+  duration_minutes: number;
+}) {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_URL}/api/log-exercise`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error?.message || 'Failed to log exercise');
+  return json.data;
+}
+
+export async function getTodayExercises(date?: string) {
+  const headers = await getAuthHeaders();
+  const params = date ? `?date=${date}` : '';
+  const res = await fetch(`${API_URL}/api/today-exercises${params}`, { headers });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error?.message || 'Failed to load exercises');
+  return json.data as any[];
+}
